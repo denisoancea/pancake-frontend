@@ -1,12 +1,12 @@
 import BigNumber from 'bignumber.js'
-import { DEFAULT_GAS_LIMIT, DEFAULT_TOKEN_DECIMAL } from 'config'
 import { ethers } from 'ethers'
+import { DEFAULT_GAS_LIMIT, DEFAULT_TOKEN_DECIMAL } from 'config'
 import pools from 'config/constants/pools'
 import sousChefV2 from 'config/abi/sousChefV2.json'
-import { BIG_TEN } from './bigNumber'
-import { web3WithArchivedNodeProvider } from './web3'
 import { getAddress } from './addressHelpers'
+import { BIG_TEN, BIG_ZERO } from './bigNumber'
 import multicall from './multicall'
+import { archiveRpcProvider } from './providers'
 
 const options = {
   gasLimit: DEFAULT_GAS_LIMIT,
@@ -88,6 +88,12 @@ export const soushHarvest = async (sousChefContract) => {
   return receipt.status
 }
 
+export const soushHarvestBnb = async (sousChefContract) => {
+  const tx = await sousChefContract.deposit({ ...options, value: BIG_ZERO })
+  const receipt = await tx.wait()
+  return receipt.status
+}
+
 /**
  * Returns the total number of pools that were active at a given block
  */
@@ -95,7 +101,7 @@ export const getActivePools = async (block?: number) => {
   const eligiblePools = pools
     .filter((pool) => pool.sousId !== 0)
     .filter((pool) => pool.isFinished === false || pool.isFinished === undefined)
-  const blockNumber = block || (await web3WithArchivedNodeProvider.eth.getBlockNumber())
+  const blockNumber = block || (await archiveRpcProvider.getBlockNumber())
   const startBlockCalls = eligiblePools.map(({ contractAddress }) => ({
     address: getAddress(contractAddress),
     name: 'startBlock',
